@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Flights - Flight Reservation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-logo">
+            <img src="SkyLanes.png" alt="SkyLanes Logo">
+            <span class="nav-brand">Flight Booking</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="search.html" class="active">Search Flights</a>
+            <a href="bookings.html">My Bookings</a>
+            <div id="adminSection" style="display: none;">
+                <button id="addFlightBtn" class="admin-btn">Add New Flight</button>
+            </div>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Add Flight Modal -->
+    <div id="addFlightModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Flight</h2>
+            <form id="addFlightForm">
+                <div class="form-group">
+                    <label for="airline">Airline:</label>
+                    <input type="text" id="airline" required>
+                </div>
+                <div class="form-group">
+                    <label for="flightNumber">Flight Number:</label>
+                    <input type="text" id="flightNumber" required>
+                </div>
+                <div class="form-group">
+                    <label for="departureCity">Departure City:</label>
+                    <input type="text" id="departureCity" required>
+                </div>
+                <div class="form-group">
+                    <label for="departureAirport">Departure Airport:</label>
+                    <input type="text" id="departureAirport" required>
+                </div>
+                <div class="form-group">
+                    <label for="arrivalCity">Arrival City:</label>
+                    <input type="text" id="arrivalCity" required>
+                </div>
+                <div class="form-group">
+                    <label for="arrivalAirport">Arrival Airport:</label>
+                    <input type="text" id="arrivalAirport" required>
+                </div>
+                <div class="form-group">
+                    <label for="departureDate">Departure Date:</label>
+                    <input type="datetime-local" id="departureDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="price">Price:</label>
+                    <input type="number" id="price" required>
+                </div>
+                <div class="form-group">
+                    <label for="seatsAvailable">Available Seats:</label>
+                    <input type="number" id="seatsAvailable" required>
+                </div>
+                <button type="submit" class="submit-btn">Add Flight</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="search-section">
+            <h2>Search Flights</h2>
+            <form id="searchForm" class="search-form">
+                <div class="form-group">
+                    <label for="from">From:</label>
+                    <input type="text" id="from" required>
+                </div>
+                <div class="form-group">
+                    <label for="to">To:</label>
+                    <input type="text" id="to" required>
+                </div>
+                <div class="form-group">
+                    <label for="date">Date:</label>
+                    <input type="date" id="date" required>
+                </div>
+                <button type="submit" class="submit-btn">Search</button>
+            </form>
+
+            <div id="flightResults" class="flight-results"></div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        let isAdmin = false;
+
+        // Modified checkAuthStatus to include role check
+        async function checkAdminStatus() {
+            try {
+                const response = await fetch('/api/user/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch user profile');
+
+                const userData = await response.json();
+                isAdmin = userData.role === 'admin';
+
+                // Show/hide admin section based on role
+                document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
+            } catch (error) {
+                // console.error('Error checking admin status:', error);
+            }
+        }
+
+        // checking authentication and authorization
+        checkAuthStatus();
+        checkAdminStatus();
+
+        // Modal handling
+        const modal = document.getElementById('addFlightModal');
+        const addFlightBtn = document.getElementById('addFlightBtn');
+        const closeBtn = document.querySelector('.close');
+
+        addFlightBtn?.addEventListener('click', () => {
+            modal.style.display = 'block';
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // Add Flight Form Submission
+        document.getElementById('addFlightForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Get departure datetime
+            const departureDateInput = document.getElementById('departureDate').value;
+
+            // Calculate arrival date (assuming 2 hours after departure)
+            const departureDate = new Date(departureDateInput);
+            const arrivalDate = new Date(departureDate.getTime() + (2 * 60 * 60 * 1000));
+
+            // formatting dates to ISO string for Zod validation
+            const formattedDepartureDate = departureDate.toISOString();
+            const formattedArrivalDate = arrivalDate.toISOString();
+
+            const flightData = {
+                airline: document.getElementById('airline').value,
+                flightNumber: document.getElementById('flightNumber').value,
+                departure: {
+                    city: document.getElementById('departureCity').value,
+                    airport: document.getElementById('departureAirport').value,
+                    date: formattedDepartureDate
+                },
+                arrival: {
+                    city: document.getElementById('arrivalCity').value,
+                    airport: document.getElementById('arrivalAirport').value,
+                    date: formattedArrivalDate
+                },
+                price: Number(document.getElementById('price').value),
+                seatsAvailable: Number(document.getElementById('seatsAvailable').value)
+            };
+
+            try {
+                const response = await fetch('/api/flights', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(flightData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to add flight');
+                }
+
+                alert('Flight added successfully!');
+                modal.style.display = 'none';
+                document.getElementById('addFlightForm').reset();
+
+                // Refresh flight list
+                if (document.getElementById('from').value) {
+                    document.getElementById('searchForm').dispatchEvent(new Event('submit'));
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                // console.error('Error details:', error);
+            }
+        });
+
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const from = document.getElementById('from').value;
+            const to = document.getElementById('to').value;
+            const date = document.getElementById('date').value;
+
+            try {
+                const response = await fetch(`/api/flights/search?from=${from}&to=${to}&date=${date}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+
+                const flights = await response.json();
+                displayFlights(flights);
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        function displayFlights(flights) {
+            const resultsDiv = document.getElementById('flightResults');
+            resultsDiv.innerHTML = '';
+
+            if (flights.length === 0) {
+                resultsDiv.innerHTML = '<p>No flights found for the selected criteria. Please try again.</p>';
+            } else {
+                flights.forEach(flight => {
+                    const flightCard = document.createElement('div');
+                    flightCard.className = 'flight-card';
+
+                    // Adding admin buttons if user is admin
+                    const adminButtons = isAdmin ? `
+                <div class="admin-actions">
+                    <button onclick="editFlight('${flight._id}')" class="edit-btn">Edit</button>
+                    <button onclick="deleteFlight('${flight._id}')" class="delete-btn">Delete</button>
+                </div>
+            ` : '';
+
+                    flightCard.innerHTML = `
+                <h3>${flight.airline}</h3>
+                <p>Flight: ${flight.flightNumber}</p>
+                <p>From: ${flight.departure.city} (${flight.departure.airport})</p>
+                <p>To: ${flight.arrival.city} (${flight.arrival.airport})</p>
+                <p>Price: $${flight.price}</p>
+                <p>Available Seats: ${flight.seatsAvailable}</p>
+                ${adminButtons}
+                <button onclick="bookFlight('${flight._id}')" class="book-btn">Book Now</button>
+            `;
+                    resultsDiv.appendChild(flightCard);
+                });
+            }
+        }
+
+
+        async function bookFlight(flightId) {
+            try {
+
+                const userResponse = await fetch('/api/user/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!userResponse.ok) {
+                    throw new Error('Failed to fetch user details');
+                }
+
+                const userData = await userResponse.json();
+
+                const response = await fetch('/api/reservations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        flightId,
+                        passengers: [{
+                            firstName: userData.firstName,
+                            lastName: userData.lastName,
+                            seatNumber: 'A1'
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Booking failed');
+                }
+
+                alert('Booking successful!');
+                window.location.href = 'bookings.html';
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Reservation System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-logo">
+            <img src="SkyLanes.png" alt="SkyLanes Logo">
+            <span class="nav-brand">Flight Booking</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="search.html" id="searchLink">Search Flights</a>
+            <a href="bookings.html" id="bookingsLink">My Bookings</a>
+            <a href="login.html" id="loginLink">Login</a>
+            <a href="register.html" id="registerLink">Register</a>
+            <button id="logoutBtn" style="display: none;">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="hero">
+            <h1>Welcome to Flight Booking</h1>
+            <p>Find and book your perfect flight today</p>
+            <a href="search.html" class="cta-button">Search Flights</a>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        checkAuthStatus();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bookings - Flight Reservation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-logo">
+            <img src="SkyLanes.png" alt="SkyLanes Logo">
+            <span class="nav-brand">Flight Booking</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="search.html">Search Flights</a>
+            <a href="bookings.html" class="active">My Bookings</a>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2>My Bookings</h2>
+        <div id="bookingsList" class="bookings-list"></div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        checkAuthStatus();
+
+        async function fetchBookings() {
+            try {
+                const response = await fetch('/api/reservations', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch bookings');
+                }
+
+                const bookings = await response.json();
+                // console.log(bookings);
+                displayBookings(bookings);
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function displayBookings(bookings) {
+            const bookingsList = document.getElementById('bookingsList');
+            bookingsList.innerHTML = '';
+
+            bookings.forEach(booking => {
+                const bookingCard = document.createElement('div');
+                bookingCard.className = 'booking-card';
+
+                // Create passengers list HTML
+                const passengersHtml = booking.passengers.map(passenger => `
+            <div class="passenger-info">
+                <p><strong>Passenger:</strong> ${passenger.firstName} ${passenger.lastName}</p>
+                <p><strong>Seat:</strong> ${passenger.seatNumber}</p>
+            </div>
+        `).join('');
+
+                bookingCard.innerHTML = `
+            <h3>Booking ID: ${booking._id}</h3>
+            <div class="flight-details">
+                <p><strong>Flight:</strong> ${booking.flight.flightNumber}</p>
+                <p><strong>From:</strong> ${booking.flight.departure.city}</p>
+                <p><strong>To:</strong> ${booking.flight.arrival.city}</p>
+                <p><strong>Date:</strong> ${new Date(booking.flight.departure.date).toLocaleDateString()}</p>
+                <p><strong>Status:</strong> ${booking.status}</p>
+                <p><strong>Total Price:</strong> $${booking.totalPrice}</p>
+            </div>
+            <div class="passengers-section">
+                <h4>Passenger Details</h4>
+                ${passengersHtml}
+            </div>
+        `;
+                bookingsList.appendChild(bookingCard);
+            });
+        }
+
+        fetchBookings();
+    </script>
+</body>
+
+</html>
